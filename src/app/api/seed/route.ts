@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+export async function GET() {
+  return handleSeed();
+}
+
 export async function POST() {
+  return handleSeed();
+}
+
+async function handleSeed() {
   const cat = await prisma.category.upsert({
     where: { slug: "structural" },
     update: {},
