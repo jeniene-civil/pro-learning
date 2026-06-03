@@ -4,6 +4,10 @@ import { routing } from "@/i18n/routing";
 import { Poppins, Inter, JetBrains_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import en from "@/messages/en.json";
+import fr from "@/messages/fr.json";
+
+const messagesMap = { en, fr } as const;
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -33,12 +37,7 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
 
-  let messages;
-  try {
-    messages = (await import(`../../../messages/${locale}.json`)).default;
-  } catch {
-    notFound();
-  }
+  const messages = messagesMap[locale as keyof typeof messagesMap] ?? en;
 
   return (
     <html lang={locale} className={`${poppins.variable} ${inter.variable} ${jetbrainsMono.variable}`}>

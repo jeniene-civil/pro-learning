@@ -17,6 +17,7 @@ const navLinks = [
   { key: "software", href: "/software" },
   { key: "tools", href: "/tools" },
   { key: "resources", href: "/resources" },
+  { key: "community", href: "/community" },
   { key: "pricing", href: "/pricing" },
 ];
 
