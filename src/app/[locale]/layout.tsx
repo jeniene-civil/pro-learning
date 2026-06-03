@@ -4,6 +4,7 @@ import { routing } from "@/i18n/routing";
 import { Poppins, Inter, JetBrains_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import Providers from "@/components/Providers";
 import en from "@/messages/en.json";
 import fr from "@/messages/fr.json";
 
@@ -43,9 +44,11 @@ export default async function LocaleLayout({
     <html lang={locale} className={`${poppins.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-surface-bg text-gray-900 antialiased min-h-screen flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <Providers>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

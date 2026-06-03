@@ -2,13 +2,11 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
 import {
-  Menu,
-  X,
-  ChevronDown,
-  Globe,
-  GraduationCap,
+  Menu, X, Globe, GraduationCap,
+  User, LogOut, LayoutDashboard,
 } from "lucide-react";
 
 const navLinks = [
@@ -26,8 +24,25 @@ export default function Header() {
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   const locale = useLocale();
+  const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const otherLocale = locale === "en" ? "fr" : "en";
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const initials = session?.user?.name
+    ? session.user.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border shadow-sm">
@@ -62,18 +77,55 @@ export default function Header() {
               <Globe className="w-4 h-4" />
               {tc(otherLocale)}
             </Link>
-            <Link
-              href={`/${locale}/login`}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-brand transition-colors"
-            >
-              {t("login")}
-            </Link>
-            <Link
-              href={`/${locale}/register`}
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-brand rounded-lg hover:bg-brand-700 shadow-blue transition-all duration-200"
-            >
-              {t("startFree")}
-            </Link>
+
+            {session ? (
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold hover:bg-brand-700 transition-colors"
+                >
+                  {initials}
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-border shadow-xl py-2">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900 truncate">{session.user?.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
+                    </div>
+                    <Link
+                      href={`/${locale}/dashboard`}
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      {t("dashboard")}
+                    </Link>
+                    <button
+                      onClick={() => signOut({ callbackUrl: `/${locale}` })}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link
+                  href={`/${locale}/login`}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-brand transition-colors"
+                >
+                  {t("login")}
+                </Link>
+                <Link
+                  href={`/${locale}/register`}
+                  className="px-5 py-2.5 text-sm font-semibold text-white bg-brand rounded-lg hover:bg-brand-700 shadow-blue transition-all duration-200"
+                >
+                  {t("startFree")}
+                </Link>
+              </>
+            )}
           </div>
 
           <button
@@ -107,20 +159,42 @@ export default function Header() {
               <Globe className="w-4 h-4" />
               {locale === "en" ? "Français" : "English"}
             </Link>
-            <Link
-              href={`/${locale}/login`}
-              className="block px-3 py-2.5 text-sm font-medium text-gray-700"
-              onClick={() => setMenuOpen(false)}
-            >
-              {t("login")}
-            </Link>
-            <Link
-              href={`/${locale}/register`}
-              className="block px-5 py-2.5 text-sm font-semibold text-center text-white bg-brand rounded-lg"
-              onClick={() => setMenuOpen(false)}
-            >
-              {t("startFree")}
-            </Link>
+            {session ? (
+              <>
+                <Link
+                  href={`/${locale}/dashboard`}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  {t("dashboard")}
+                </Link>
+                <button
+                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: `/${locale}` }); }}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-600 w-full text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={`/${locale}/login`}
+                  className="block px-3 py-2.5 text-sm font-medium text-gray-700"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {t("login")}
+                </Link>
+                <Link
+                  href={`/${locale}/register`}
+                  className="block px-5 py-2.5 text-sm font-semibold text-center text-white bg-brand rounded-lg"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {t("startFree")}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
