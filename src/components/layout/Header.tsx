@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import {
   Menu, X, Globe, GraduationCap,
-  User, LogOut, LayoutDashboard,
+  User, LogOut, LayoutDashboard, Shield,
 } from "lucide-react";
 
 const navLinks = [
@@ -100,6 +100,16 @@ export default function Header() {
                       <LayoutDashboard className="w-4 h-4" />
                       {t("dashboard")}
                     </Link>
+                    {(session.user as any)?.role === "ADMIN" && (
+                      <Link
+                        href={`/${locale}/admin`}
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-brand hover:bg-brand-50"
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin
+                      </Link>
+                    )}
                     <button
                       onClick={() => signOut({ callbackUrl: `/${locale}` })}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full text-left"
@@ -169,6 +179,16 @@ export default function Header() {
                   <LayoutDashboard className="w-4 h-4" />
                   {t("dashboard")}
                 </Link>
+                {(session.user as any)?.role === "ADMIN" && (
+                  <Link
+                    href={`/${locale}/admin`}
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-brand"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Admin
+                  </Link>
+                )}
                 <button
                   onClick={() => { setMenuOpen(false); signOut({ callbackUrl: `/${locale}` }); }}
                   className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-600 w-full text-left"
