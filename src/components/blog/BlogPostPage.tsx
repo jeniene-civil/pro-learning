@@ -42,6 +42,7 @@ Pro Learning offers 12 specialized ETABS courses ranging from beginner to advanc
 export default function BlogPostPage() {
   const locale = useLocale();
   const params = useParams();
+  if (!params) return null;
   const slug = params.post as string;
   const post = posts[slug as keyof typeof posts];
 
