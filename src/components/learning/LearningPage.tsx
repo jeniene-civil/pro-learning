@@ -2,46 +2,72 @@
 
 import { useLocale } from "next-intl";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Play, CheckCircle, Circle, ChevronDown, ChevronRight,
-  Download, FileText, MessageSquare, Bot, BookOpen,
+  Download, FileText, MessageSquare, Bot,
   Maximize2, Monitor, SkipBack, SkipForward, Volume2,
-  Clock, ArrowLeft, Star, Search, Settings
+  ArrowLeft, Search, Settings
 } from "lucide-react";
 
-const sections = [
-  {
-    title: "Introduction to ETABS Interface", duration: "45:00", lessons: [
-      { title: "Welcome & Course Overview", duration: "10:25", free: true, completed: true },
-      { title: "ETABS Interface Navigation", duration: "18:40", free: true, completed: true },
-      { title: "Setting Up Your First Project", duration: "22:15", free: false, completed: false },
-    ]
-  },
-  {
-    title: "Structural Modeling Basics", duration: "2:30:00", lessons: [
-      { title: "Grid Systems & Story Data", duration: "15:20", free: false, completed: true },
-      { title: "Material Properties Definition", duration: "12:45", free: false, completed: false, active: true },
-      { title: "Frame Sections & Shells", duration: "20:10", free: false, completed: false },
-      { title: "Drawing & Assigning Objects", duration: "18:30", free: false, completed: false },
-    ]
-  },
-  { title: "Load Definition & Assignment", duration: "3:15:00", lessons: [] },
-  { title: "Analysis & Results Interpretation", duration: "4:00:00", lessons: [] },
-  { title: "RC Design - ACI 318", duration: "5:30:00", lessons: [] },
-];
-
-export default function LearningPage() {
+export default function LearningPage({ slug }: { slug: string }) {
   const locale = useLocale();
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeLesson, setActiveLesson] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"notes" | "downloads" | "qa">("notes");
   const [curriculumOpen, setCurriculumOpen] = useState(true);
-  const [expandedSections, setExpandedSections] = useState<number[]>([0, 1]);
+  const [expandedSections, setExpandedSections] = useState<number[]>([0]);
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState([
     { text: "fc' = 28MPa for concrete compressive strength", time: "4:32" },
     { text: "fy = 420MPa for steel reinforcement yield strength", time: "6:15" },
     { text: "Check minimum steel ratio per ACI 318-19 Section 9.6", time: "8:40" },
   ]);
+
+  useEffect(() => {
+    fetch(`/api/courses/slug/${slug}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setCourse(data);
+        const firstLesson = data.lessons?.[0];
+        if (firstLesson) setActiveLesson(firstLesson);
+      })
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
+        <p className="text-gray-500 ml-3 text-sm">Loading course...</p>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
+        <p className="text-gray-400">Course not found</p>
+      </div>
+    );
+  }
+
+  const sections = course.lessons?.reduce((acc: any[], lesson: any) => {
+    const title = lesson.sectionTitle || "General";
+    let section = acc.find((s: any) => s.title === title);
+    if (!section) {
+      section = { title, lessons: [] };
+      acc.push(section);
+    }
+    section.lessons.push(lesson);
+    return acc;
+  }, []) || [];
+
+  const allLessons = sections.flatMap((s: any) => s.lessons);
+  const completedCount = allLessons.filter((l: any) => l.progress?.completed).length;
+  const totalLessons = allLessons.length;
+  const progressPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   const toggleSection = (idx: number) => {
     setExpandedSections(prev =>
@@ -54,11 +80,11 @@ export default function LearningPage() {
       {/* Top Bar */}
       <header className="flex items-center justify-between px-4 h-14 bg-gray-900 border-b border-gray-800 shrink-0">
         <div className="flex items-center gap-3">
-          <Link href={`/${locale}/courses/etabs-complete-mastery`} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
+          <Link href={`/${locale}/courses/${slug}`} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back</span>
           </Link>
-          <span className="text-gray-300 text-sm font-medium hidden sm:inline truncate max-w-md">ETABS Complete Mastery Course</span>
+          <span className="text-gray-300 text-sm font-medium hidden sm:inline truncate max-w-md">{course.title}</span>
         </div>
         <div className="flex items-center gap-3">
           <button className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"><Search className="w-4 h-4" /></button>
@@ -73,30 +99,34 @@ export default function LearningPage() {
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-gray-400">Course Progress</span>
-              <span className="text-xs text-brand font-medium">68%</span>
+              <span className="text-xs text-brand font-medium">{progressPct}%</span>
             </div>
             <div className="w-full bg-gray-800 rounded-full h-1.5">
-              <div className="bg-brand rounded-full h-1.5" style={{ width: "68%" }} />
+              <div className="bg-brand rounded-full h-1.5" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
           <div className="p-2 space-y-1">
-            {sections.map((section, sIdx) => (
+            {sections.map((section: any, sIdx: number) => (
               <div key={section.title}>
                 <button onClick={() => toggleSection(sIdx)} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-800 transition-colors text-left">
                   <div className="flex items-center gap-2 min-w-0">
                     {expandedSections.includes(sIdx) ? <ChevronDown className="w-3.5 h-3.5 text-gray-500 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />}
                     <div className="min-w-0">
                       <span className="text-sm text-gray-300 truncate block">{section.title}</span>
-                      {section.lessons.length > 0 && <span className="text-xs text-gray-500">{section.lessons.filter(l => l.completed).length}/{section.lessons.length} | {section.duration}</span>}
+                      {section.lessons.length > 0 && <span className="text-xs text-gray-500">{section.lessons.length} lessons</span>}
                     </div>
                   </div>
                 </button>
                 {expandedSections.includes(sIdx) && section.lessons.length > 0 && (
                   <div className="ml-4 space-y-0.5">
-                    {section.lessons.map((lesson, lIdx) => (
-                      <div key={lIdx} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${lesson.active ? "bg-brand/10 text-brand" : "hover:bg-gray-800 text-gray-400"}`}>
-                        {lesson.completed ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : lesson.active ? <Play className="w-3.5 h-3.5 text-brand shrink-0" /> : <Circle className="w-3.5 h-3.5 text-gray-600 shrink-0" />}
-                        <span className={`truncate flex-1 ${lesson.active ? "text-brand" : ""}`}>{lesson.title}</span>
+                    {section.lessons.map((lesson: any, lIdx: number) => (
+                      <div
+                        key={lesson.id}
+                        onClick={() => setActiveLesson(lesson)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${activeLesson?.id === lesson.id ? "bg-brand/10 text-brand" : "hover:bg-gray-800 text-gray-400"}`}
+                      >
+                        {activeLesson?.id === lesson.id ? <Play className="w-3.5 h-3.5 text-brand shrink-0" /> : <Circle className="w-3.5 h-3.5 text-gray-600 shrink-0" />}
+                        <span className={`truncate flex-1 ${activeLesson?.id === lesson.id ? "text-brand" : ""}`}>{lesson.title}</span>
                         <span className="text-xs text-gray-600 shrink-0">{lesson.duration}</span>
                       </div>
                     ))}
@@ -114,8 +144,8 @@ export default function LearningPage() {
               <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-white/20 transition-colors">
                 <Play className="w-8 h-8 text-white ml-1" />
               </div>
-              <p className="text-gray-500 text-sm">Material Properties Definition</p>
-              <p className="text-gray-600 text-xs mt-1">Section 2 &bull; Lesson 2 &bull; 12:45</p>
+              <p className="text-gray-500 text-sm">{activeLesson?.title || "Select a lesson"}</p>
+              <p className="text-gray-600 text-xs mt-1">{activeLesson?.duration || ""}</p>
             </div>
           </div>
           {/* Video Controls */}
@@ -134,7 +164,7 @@ export default function LearningPage() {
           </div>
           {/* Lesson Info Bar */}
           <div className="h-12 bg-gray-900 border-t border-gray-800 px-4 flex items-center justify-between shrink-0">
-            <p className="text-sm text-gray-300">Material Properties Definition &bull; 12:45</p>
+            <p className="text-sm text-gray-300">{activeLesson?.title} &bull; {activeLesson?.duration}</p>
             <button className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors">Mark as Complete ✓</button>
           </div>
         </div>
